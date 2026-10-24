@@ -1,108 +1,183 @@
-# AndroidBuilder / romforge
+# Universal Ubuntu Touch Builder
 
-Android ROM build and device-tree discovery tools, with an offline-first Ubuntu Touch readiness assessment.
+**A toolkit for investigating Android devices and preparing the work needed to build Ubuntu Touch ports.**
 
-## Ubuntu Touch readiness check
+Universal Ubuntu Touch Builder (also called **AndroidBuilder / ROMForge** in parts of the codebase) aims to make the complex process of exploring Android device compatibility and preparing ROM-porting work easier to understand and repeat. It combines command-line tools and a desktop interface for device inspection, readiness reports, repository discovery, and existing ROM-building workflows.
 
-```bash
+> **Project status: experimental / under development.** This project does not guarantee that Ubuntu Touch can be built or run on any particular phone. Detecting a device or finding a kernel/device-tree repository is not proof of compatibility. Support must be established with device-specific evidence and testing.
+
+## Why this project exists
+
+Ubuntu Touch ports require device-specific information, compatible kernel and hardware support, source code, build tools, and careful testing. That information can be difficult to collect, especially for people new to Android ROM development.
+
+This project is intended to bring useful checks and workflows into one place so users can:
+
+- identify an Android device and collect information it exposes;
+- assess what is known, unknown, or still needs research before attempting a port;
+- produce readable Markdown and JSON reports for later review;
+- discover candidate source repositories when online search is enabled;
+- use a desktop UI or CLI, depending on their preference;
+- run existing ROMForge build-related workflows and setup checks;
+- approach device modification cautiously, without confusing research results with proof that a port works.
+
+The long-term goal is a reusable, multi-device toolkit. Each device still needs its own verified profile, sources, compatibility analysis, and testing.
+
+## Main features
+
+### 1. Device inspection and readiness reports
+
+The readiness checker can run without a phone connected when you supply basic device details. With Android Debug Bridge (ADB) configured, it can optionally inspect a connected device and collect information available through read-only queries.
+
+Reports can distinguish candidate information from unknown or unverified properties. An online search can find possible GitHub repositories, but repository metadata is treated as a lead to investigate—not as compatibility proof.
+
+### 2. Desktop application
+
+The PySide6 desktop UI provides a device-first workflow:
+
+- view Android devices visible to ADB;
+- select a device to inspect it;
+- read a plain-language summary and detailed report;
+- copy or export a report;
+- view connection help and dependency availability.
+
+The UI is a front end to the project's existing commands. It does not itself guarantee a successful ROM build.
+
+### 3. Command-line tools
+
+ROMForge exposes CLI commands for readiness checks and existing ROM-builder workflows. Run `python3 romforge.py --help` to see the commands and options available in your checkout.
+
+### 4. Setup and validation helpers
+
+The repository includes setup helpers and project tests. These can help check prerequisites and install selected dependencies, but a successful setup check is not the same as having a complete Android build environment or a working device port.
+
+## Quick start
+
+### Requirements
+
+- Python 3
+- Git, if you are cloning the repository
+- For connected-phone inspection: Android SDK Platform-Tools (ADB), a USB data cable, and USB debugging enabled on the phone
+- For the desktop interface: the dependencies listed in `requirements-ui.txt`
+- For full Android ROM builds: a suitably configured Linux environment and the external tools and source trees required by the chosen build workflow. Ubuntu or Ubuntu under WSL2 is recommended for Windows users.
+
+### Run a readiness check without a connected phone
+
+From the project root:
+
+~~~bash
 python3 romforge.py ut-check \
   --manufacturer Sony --model "Xperia R1" --ram-gb 2 \
   --json-out reports/xperia-r1.json \
   --markdown-out reports/xperia-r1.md
-```
+~~~
 
-The checker does not require a connected phone. On Windows 10, install Android SDK Platform-Tools, add its folder to `PATH`, enable USB debugging on the phone, connect by USB, and accept the authorization prompt. Then run:
+Replace the example device details with the device you want to investigate. Supplied details are inputs to the assessment; they do not prove port compatibility.
 
-```powershell
-python romforge.py ut-check --inspect-device
-# If more than one phone is connected:
-python romforge.py ut-check --inspect-device --serial YOUR_ADB_SERIAL
-```
+### Inspect a connected Android phone
 
-Device inspection is opt-in and read-only: it runs `adb devices -l`, `getprop`, reads `/proc/meminfo`, and queries `uname -r`. It does not root, unlock, flash, or change phone settings. Add `--online` to search GitHub for candidate repositories; network failures are reported and repository metadata is never treated as compatibility proof. User-provided facts are marked as candidates, unknown properties remain unknown, and no report claims that a port builds or boots. See [device readiness](docs/device-readiness.md), [porting notes](docs/ubuntu-touch-porting.md), and the [repository audit](docs/repository-audit.md).
+1. Install Android SDK Platform-Tools and make sure `adb` is on your `PATH`.
+2. Enable Developer options and USB debugging on the phone.
+3. Connect the phone, unlock it, and accept the USB debugging prompt only if you trust the computer.
+4. Run:
 
-## Desktop UI (Windows 10 and Ubuntu)
+~~~bash
+python3 romforge.py ut-check --inspect-device
+~~~
 
-AndroidBuilder includes a PySide6 desktop application for a device-first workflow. The dashboard lists Android devices visible to ADB as selectable phone tiles. Select a tile to open its dedicated device page; the app automatically runs a read-only inspection and displays a plain-language summary plus the detailed Markdown report. The device page also provides **Copy report** and **Export report** actions. Use **Home** to return to the dashboard and **Help** for connection instructions and dependency availability checks.
+If more than one device is connected:
 
-### Launch
+~~~bash
+python3 romforge.py ut-check --inspect-device --serial YOUR_ADB_SERIAL
+~~~
 
-Install the UI dependencies and start the application from the repository root:
+Device inspection is intended to be **opt-in and read-only**. It queries device information exposed through ADB; it does not root, unlock, erase, or flash the phone. Review the command and its options before running it.
 
-```bash
+### Launch the desktop UI
+
+Install the UI requirements and start the application:
+
+~~~bash
 python3 -m pip install -r requirements-ui.txt
 python3 run_desktop_ui.py
-```
+~~~
 
-For an existing virtual environment, activate it first and use `python -m pip install -r requirements-ui.txt`, then launch with `python -m desktop_ui.app` or `python run_desktop_ui.py`.
+If you use a virtual environment, activate it first and install dependencies inside that environment. You can also launch with:
 
-On Windows PowerShell:
+~~~bash
+python3 -m desktop_ui.app
+~~~
 
-```powershell
-py -3 -m pip install -r requirements-ui.txt
-py -3 run_desktop_ui.py
-```
+### Ubuntu setup checks
 
-### Connect and inspect a phone
-
-1. Install Android SDK Platform-Tools and ensure `adb` is available on `PATH`.
-2. On the phone, enable Developer options and USB debugging.
-3. Connect using a USB data cable, unlock the phone, and accept the USB debugging authorization prompt only if you trust the computer.
-4. Open AndroidBuilder and refresh the dashboard device list.
-5. Select the phone tile. The dedicated details page should automatically start the read-only inspection.
-
-The Help dialog lists common dependency availability. A tool marked available is discoverable by the running application; this does not mean every build backend is fully configured. Docker and GitHub CLI are optional and only relevant to corresponding workflows.
-
-### Safety and compatibility limits
-
-Device inspection reads information exposed by ADB. It does **not** unlock, root, reboot, erase, or flash the phone. A detected device and its reported properties are not proof of Ubuntu Touch port support, bootability, or working hardware. Treat `UNKNOWN` and `Not enough information` as incomplete evidence, not as a positive or negative compatibility verdict.
-
-The desktop UI is a front end to existing ROMForge commands; it does not itself guarantee that a ROM can be built. Full Android ROM builds should be performed in a suitably configured Linux environment (Ubuntu/WSL2 is recommended for Windows users). See [desktop UI instructions](docs/desktop-ui.md), [device readiness](docs/device-readiness.md), and [Windows setup](docs/windows-setup.md).
-
-## Ubuntu setup
-
-For a native Ubuntu host, run the checks-only helper from the repository root:
-
-```bash
+~~~bash
 chmod +x setup_ubuntu.sh
 ./setup_ubuntu.sh
-```
+~~~
 
-Optional install steps are explicit:
+Optional installation steps are explicit:
 
-```bash
+~~~bash
 ./setup_ubuntu.sh --install-tools
 ./setup_ubuntu.sh --install-build-deps
 ./setup_ubuntu.sh --install-python-deps
-```
+~~~
 
-See [Ubuntu setup instructions](docs/ubuntu-setup.md) for package notes, virtual-environment use, ADB device inspection, and limitations. The helper does not sync ROM sources or modify a connected phone.
+Review the setup documentation before using installation options.
 
-## Windows 10 setup automation
+### Windows
 
-From PowerShell in the repository folder, run the prerequisite checks:
+Run the prerequisite checks from PowerShell:
 
-```powershell
+~~~powershell
 Set-ExecutionPolicy -Scope Process Bypass
 .\setup_windows.ps1
-```
+~~~
 
-Optional switches can attempt to install Git/Python/ADB with WinGet, request WSL2 Ubuntu installation, or install Python requirements and run project checks:
+See the Windows setup documentation before using switches that install tools or request WSL2. WSL2 Ubuntu is recommended for actual Android ROM build workflows.
 
-```powershell
-.\setup_windows.ps1 -InstallTools
-.\setup_windows.ps1 -InstallWSL
-.\setup_windows.ps1 -InstallPythonDependencies
-```
+## Safety and compatibility
 
-Review [Windows setup instructions](docs/windows-setup.md) before using installation switches. WSL2 Ubuntu is recommended for actual Android ROM builds; the script does not restart the PC and does not modify or flash the phone.
+Please read this section before working with a physical device:
 
-## Existing ROM builder
+- **A detected phone is not a supported port.** Device identification only establishes what the device reports.
+- **A candidate source repository is not proof.** Kernel, device-tree, vendor, firmware, and porting sources must be checked for the exact device variant and Android base.
+- **Unknown means unknown.** Treat incomplete evidence as a reason to investigate further, not as a positive compatibility result.
+- **Do not flash based on a readiness report.** Bootloader unlocking, repartitioning, recovery installation, and flashing can erase data or make a device unusable. Follow verified, device-specific instructions and maintain a recovery plan.
+- **Keep claims evidence-based.** A build artifact is not necessarily bootable, and a booting system is not necessarily a functional port. Hardware features require testing on the actual device.
 
-Run `python3 romforge.py --help` for CLI usage. The interactive menu requires `questionary`; see `requirements.txt` for dependencies and external build tools.
+## Documentation
 
-## Tests
+The repository's docs directory contains additional guidance. Start with the documents relevant to your workflow, including:
 
-```bash
+- [Device readiness](docs/device-readiness.md)
+- [Ubuntu Touch porting notes](docs/ubuntu-touch-porting.md)
+- [Desktop UI instructions](docs/desktop-ui.md)
+- [Ubuntu setup](docs/ubuntu-setup.md)
+- [Windows setup](docs/windows-setup.md)
+- [Repository audit](docs/repository-audit.md)
+
+If a referenced document is not present in your checkout, consult the available files in docs for the corresponding guidance.
+
+## Run the tests
+
+From the project root:
+
+~~~bash
 python3 -m unittest discover -s tests -v
-```
+~~~
+
+Run tests before relying on changes or reporting a workflow as working. Results may vary by operating system, installed dependencies, and connected hardware.
+
+## Contributing
+
+Issues, reproducible bug reports, documentation improvements, and carefully evidenced device research are useful contributions. When reporting a device, include the exact manufacturer/model/device identifiers, Android version and build fingerprint where available, relevant logs, source links, and what has or has not been tested. Remove personal information and secrets from logs before sharing them.
+
+Please distinguish observed facts from assumptions, and do not describe a device as supported unless there is evidence for the relevant build and hardware functionality.
+
+## Project direction
+
+The long-term direction is to make porting research and preparation more consistent across devices through reusable device profiles, evidence-based readiness checks, source discovery, repeatable build workflows, and artifact validation. Universal tooling can organize and automate common work, but it cannot eliminate the device-specific engineering and testing required for each Ubuntu Touch port.
+
+---
+
+**In short:** this project helps you investigate an Android device and organize the work toward an Ubuntu Touch port. It is a development toolkit—not a one-click guarantee of a working Ubuntu Touch ROM.
