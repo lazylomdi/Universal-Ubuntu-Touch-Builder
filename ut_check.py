@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from source_discovery import discover_github_candidates
 from device_inspector import inspect_device
+from fastboot_inspector import inspect_fastboot_device
 
 STATUSES = {"VERIFIED", "CANDIDATE", "UNKNOWN", "BLOCKED", "NOT_APPLICABLE"}
 
@@ -77,6 +78,23 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines.append(f"- **Message:** {inspection.get('message', 'No live inspection data.')}")
     if inspection.get("serial"):
         lines.append(f"- **ADB serial:** {inspection['serial']}")
+    fastboot = report.get("fastboot_inspection", {})
+    lines.extend(["", "## Fastboot inspection", ""])
+    lines.append(f"- **Inspection status:** {fastboot.get('status', 'NOT_RUN')}")
+    lines.append(f"- **Message:** {fastboot.get('message', 'Pass --inspect-fastboot while the phone is in Fastboot mode.')}")
+    if fastboot.get("serial"):
+        lines.append(f"- **Fastboot serial:** {fastboot['serial']}")
+    fastboot_device = fastboot.get("device", {})
+    if fastboot_device:
+        lines.extend([
+            f"- **Bootloader product:** {fastboot_device.get('product') or 'Unknown'}",
+            f"- **Current bootloader state:** {fastboot_device.get('current_state', 'UNKNOWN')}",
+            f"- **Critical bootloader unlocked:** {fastboot_device.get('critical_unlocked') if fastboot_device.get('critical_unlocked') is not None else 'Unknown'}",
+            f"- **Secure mode:** {fastboot_device.get('secure') if fastboot_device.get('secure') is not None else 'Unknown'}",
+            f"- **Device tampered:** {fastboot_device.get('tampered') if fastboot_device.get('tampered') is not None else 'Unknown'}",
+            f"- **Fastboot userspace mode:** {fastboot_device.get('is_userspace') if fastboot_device.get('is_userspace') is not None else 'Unknown'}",
+            "- Fastboot values are device-reported and may be unsupported or vendor-specific."
+        ])
     lines.extend(["", "## Findings", "", "| Area | Value | Status | Evidence |", "|---|---|---|---|"])
     def safe(value: Any) -> str:
         return str(value).replace("|", "\\|").replace("\n", " ")
@@ -133,6 +151,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--kernel-version")
     parser.add_argument("--bootloader-unlock", choices=["yes", "no", "unknown"], default="unknown")
     parser.add_argument("--inspect-device", action="store_true", help="Read device properties through ADB (read-only; requires USB debugging).")
+    parser.add_argument("--inspect-fastboot", action="store_true", help="Read bootloader information from a device already in Fastboot mode; does not reboot, unlock, or flash.")
+
     parser.add_argument("--serial", help="ADB serial to inspect when multiple devices are connected; requires --inspect-device.")
     parser.add_argument("--online", action="store_true", help="Search GitHub for candidate repositories; results are not compatibility proof.")
     parser.add_argument("--json-out", type=Path)
@@ -141,12 +161,21 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.serial and not args.inspect_device:
-        build_parser().error("--serial requires --inspect-device")
+    if args.serial and not (args.inspect_device or args.inspect_fastboot):
+        build_parser().error("--serial requires --inspect-device or --inspect-fastboot")
     live = inspect_device(args.serial) if args.inspect_device else None
+    fastboot_live = inspect_fastboot_device(args.serial) if args.inspect_fastboot else None
     manufacturer, model, ram_gb = args.manufacturer, args.model, args.ram_gb
     codename, android_version, kernel_version = args.codename, args.android_version, args.kernel_version
     bootloader_unlock = None if args.bootloader_unlock == "unknown" else args.bootloader_unlock
+    if fastboot_live and fastboot_live.get("status") == "OK" and not (live and live.get("status") == "OK"):
+        # Fastboot cannot reliably identify the retail model or Android properties.
+        # Do not inherit the offline Xperia defaults for a Fastboot-only inspection.
+        manufacturer, model, ram_gb = None, None, None
+        codename, android_version, kernel_version = None, None, None
+        bootloader_unlock = "yes" if fastboot_live["device"].get("unlocked") is True else (
+            "no" if fastboot_live["device"].get("unlocked") is False else None
+        )
     if live and live.get("status") == "OK":
         detected = live["device"]
         # In live-inspection mode, absent device properties stay unknown rather
@@ -235,13 +264,50 @@ def main(argv: list[str] | None = None) -> int:
             "Read-only output of df -h /data; reports the mounted data filesystem only.",
             "Check available space before any future build or installation steps."
         )))
-    report["physical_device_available"] = bool(live and live.get("status") == "OK")
+    if fastboot_live and fastboot_live.get("status") == "OK":
+        fd = fastboot_live.get("device", {})
+        fastboot_findings = [
+            ("fastboot_product", fd.get("product"), "Bootloader-reported Fastboot product; may identify a board rather than retail model."),
+            ("fastboot_device_unlocked", fd.get("unlocked"), "Read-only Fastboot getvar / oem device-info response."),
+            ("fastboot_critical_unlocked", fd.get("critical_unlocked"), "Read-only Fastboot oem device-info response."),
+            ("fastboot_secure", fd.get("secure"), "Read-only Fastboot getvar secure response."),
+            ("fastboot_tampered", fd.get("tampered"), "Read-only Fastboot oem device-info response."),
+            ("fastboot_is_userspace", fd.get("is_userspace"), "Read-only Fastboot getvar is-userspace response."),
+        ]
+        for key, value, evidence in fastboot_findings:
+            report["findings"].append(asdict(Finding(
+                key, value, "UNKNOWN" if value is None else "CANDIDATE", evidence,
+                "Treat as device-reported evidence; confirm exact model and compatibility independently."
+            )))
+        state = fd.get("current_state", "UNKNOWN")
+        report["findings"].append(asdict(Finding(
+            "bootloader_current_state", state,
+            "UNKNOWN" if state == "UNKNOWN" else "CANDIDATE",
+            fd.get("evidence", "Read-only Fastboot output; not independently verified."),
+            "Current lock state is different from OEM permission/eligibility and Ubuntu Touch compatibility."
+        )))
+        report["fastboot_inspection"] = fastboot_live
+    else:
+        report["fastboot_inspection"] = fastboot_live or {
+            "status": "NOT_RUN",
+            "message": "Pass --inspect-fastboot while the phone is already in Fastboot mode.",
+            "serial": None, "device": {}, "devices": []
+        }
+    report["physical_device_available"] = bool(
+        (live and live.get("status") == "OK") or
+        (fastboot_live and fastboot_live.get("status") == "OK")
+    )
     report["device_inspection"] = live or {"status": "NOT_RUN", "message": "Pass --inspect-device to query a connected phone.", "serial": None, "device": {}, "devices": []}
     if live and live.get("status") != "OK":
         report["limitations"].append("Live device inspection was requested but did not succeed: " + live.get("message", "unknown error"))
     elif live and live.get("status") == "OK":
         report["limitations"] = [x for x in report["limitations"] if x != "No device was connected, flashed, or physically tested."]
-        report["limitations"].append("A device was connected for read-only property inspection; it was not flashed or functionally tested.")
+        report["limitations"].append("A device was connected for read-only ADB property inspection; it was not flashed or functionally tested.")
+    if fastboot_live and fastboot_live.get("status") != "OK":
+        report["limitations"].append("Fastboot inspection was requested but did not succeed: " + fastboot_live.get("message", "unknown error"))
+    elif fastboot_live and fastboot_live.get("status") == "OK":
+        report["limitations"] = [x for x in report["limitations"] if x != "No device was connected, flashed, or physically tested."]
+        report["limitations"].append("A device was queried in Fastboot mode using read-only commands; no unlock, reboot, or flash command was issued.")
     if args.online:
         query = "{} {} Android kernel device tree".format(args.manufacturer or "", args.model or "").strip()
         report["source_discovery"] = discover_github_candidates(query)
