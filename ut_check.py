@@ -190,6 +190,7 @@ def main(argv: list[str] | None = None) -> int:
             "slot_suffix": ("boot_slot_suffix", "ro.boot.slot_suffix"),
             "first_api_level": ("first_api_level", "ro.product.first_api_level"),
             "oem_unlock_supported": ("oem_unlock_supported_property", "ro.oem_unlock_supported"),
+            "oem_unlock_allowed": ("oem_unlock_allowed_property", "sys.oem_unlock_allowed"),
             "flash_locked": ("bootloader_flash_locked_property", "ro.boot.flash.locked"),
             "product_name": ("android_product_name", "ro.product.name"),
             "product_board": ("android_product_board", "ro.product.board"),
