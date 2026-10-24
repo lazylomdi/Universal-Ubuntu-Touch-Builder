@@ -279,6 +279,10 @@ def main(argv: list[str] | None = None) -> int:
                 key, value, "UNKNOWN" if value is None else "CANDIDATE", evidence,
                 "Treat as device-reported evidence; confirm exact model and compatibility independently."
             )))
+        unlock_finding = next((item for item in report["findings"] if item["key"] == "bootloader_unlock"), None)
+        if unlock_finding is not None and fd.get("unlocked") is not None:
+            unlock_finding["evidence"] = "Read-only Fastboot response; device-reported current lock state, not OEM unlock eligibility."
+            unlock_finding["next_step"] = "Verify exact device identity and community/manufacturer support; current unlocked state does not prove Ubuntu Touch compatibility."
         state = fd.get("current_state", "UNKNOWN")
         report["findings"].append(asdict(Finding(
             "bootloader_current_state", state,
