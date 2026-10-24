@@ -60,6 +60,38 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual(findings["bootloader_unlock_eligibility"]["status"], "UNKNOWN")
         self.assertEqual(findings["bootloader_current_state"]["status"], "CANDIDATE")
 
+    def test_fastboot_inspection_is_included_in_report(self):
+        from unittest.mock import patch
+        fastboot = {
+            "status": "OK",
+            "message": "Read-only Fastboot inspection",
+            "serial": "ABC123",
+            "device": {
+                "product": "QC_REFERENCE_PHONE",
+                "unlocked": True,
+                "critical_unlocked": True,
+                "tampered": False,
+                "secure": False,
+                "is_userspace": None,
+                "current_state": "UNLOCKED (Fastboot-reported)",
+                "evidence": "Read-only Fastboot response."
+            },
+            "devices": [{"serial": "ABC123", "state": "fastboot"}],
+            "limitations": ["No device state was changed."]
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            output = Path(temp) / "fastboot-report.json"
+            with patch("ut_check.inspect_fastboot_device", return_value=fastboot):
+                result = ut_check.main(["--inspect-fastboot", "--json-out", str(output)])
+            self.assertEqual(result, 0)
+            report = json.loads(output.read_text(encoding="utf-8"))
+        findings = {item["key"]: item for item in report["findings"]}
+        self.assertEqual(findings["fastboot_product"]["value"], "QC_REFERENCE_PHONE")
+        self.assertEqual(findings["fastboot_device_unlocked"]["value"], True)
+        self.assertEqual(findings["bootloader_current_state"]["value"], "UNLOCKED (Fastboot-reported)")
+        self.assertIn("Fastboot inspection", ut_check.render_markdown(report))
+        self.assertTrue(report["physical_device_available"])
+
     def test_cli_writes_json_and_markdown(self):
         with tempfile.TemporaryDirectory() as temp:
             json_path = Path(temp) / "nested" / "report.json"
