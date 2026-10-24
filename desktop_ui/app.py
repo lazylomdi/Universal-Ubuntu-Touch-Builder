@@ -759,8 +759,11 @@ class DesktopWindow(QMainWindow):
         refresh.clicked.connect(self.refresh_devices)
         inspect = make_button("Inspect selected device")
         inspect.clicked.connect(self.inspect_device)
+        inspect_fastboot = make_button("Inspect Fastboot mode")
+        inspect_fastboot.clicked.connect(self.inspect_fastboot_device)
         actions.addWidget(refresh)
         actions.addWidget(inspect)
+        actions.addWidget(inspect_fastboot)
         actions.addStretch()
         box.addLayout(actions)
         return page
@@ -1205,6 +1208,37 @@ class DesktopWindow(QMainWindow):
             self.nav.setCurrentRow(4)
         self.run_command([str(ROMFORGE), "ut-check", "--inspect-device", "--serial", serial, "--markdown-out", str(self.device_report_path)], "Device inspection")
 
+    def inspect_fastboot_device(self) -> None:
+        """Run read-only Fastboot inspection without requiring ADB or a selected list item."""
+        answer = QMessageBox.question(
+            self, "Read-only Fastboot inspection",
+            "Put the phone in bootloader/Fastboot mode and connect it by USB first.\\n\\n"
+            "This checks Fastboot variables and bootloader-reported state only. "
+            "It does not reboot, unlock, erase, or flash the phone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        report_dir = Path.home() / ".local" / "share" / "AndroidBuilder"
+        try:
+            report_dir.mkdir(parents=True, exist_ok=True)
+            self.device_report_path = report_dir / "fastboot-readiness-report.md"
+            self.device_report_path.unlink(missing_ok=True)
+        except OSError as exc:
+            QMessageBox.critical(self, "Cannot prepare report", f"Could not prepare the Fastboot report:\\n{exc}")
+            return
+        self.device_output.setPlainText(
+            f"Inspecting Fastboot devices using read-only queries...\\n"
+            f"Saving report to: {self.device_report_path}\\n"
+            "No unlock or flash command will be issued."
+        )
+        self.nav.setCurrentRow(4)
+        self.run_command(
+            [str(ROMFORGE), "ut-check", "--inspect-fastboot", "--markdown-out", str(self.device_report_path)],
+            "Fastboot inspection",
+        )
+
     def choose_workdir(self) -> None:
         path = QFileDialog.getExistingDirectory(self, "Select build work directory", self.workdir.text())
         if path:
@@ -1233,7 +1267,7 @@ class DesktopWindow(QMainWindow):
         self.refresh_devices()
         # Refreshing devices updates the connection summary; for an inspection,
         # replace that summary with the completed report after the refresh.
-        if task == "Device inspection":
+        if task in {"Device inspection", "Fastboot inspection"}:
             if self.device_report_path is not None and self.device_report_path.is_file():
                 try:
                     report = self.device_report_path.read_text(encoding="utf-8")
