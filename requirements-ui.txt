@@ -1,0 +1,2 @@
+# Optional GUI dependency. Core CLI use does not require PySide6.
+PySide6>=6.6,<7

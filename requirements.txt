@@ -1,0 +1,40 @@
+# romforge runtime dependencies
+#
+# Core pipeline (config, github_client, device_resolver, pipeline,
+# backends, customizer, romforge) uses only the Python standard library.
+# No pip install needed for CLI-only use.
+#
+# TUI mode requires:
+questionary>=2.0        # arrow-key menus (pulls in prompt_toolkit, wcwidth)
+
+# External tools needed on PATH (install via apt on Ubuntu):
+#
+#   repo      — Google's multi-repo tool for AOSP/LineageOS source
+#               curl https://storage.googleapis.com/git-repo-downloads/repo \
+#                 > ~/bin/repo && chmod +x ~/bin/repo
+#
+#   git       — sudo apt install git
+#
+#   adb       — sudo apt install adb
+#               (only needed for `romforge detect` / TUI device auto-detect)
+#
+#   docker    — https://docs.docker.com/engine/install/ubuntu/
+#               (only needed for --backend docker)
+#
+#   gh        — https://cli.github.com/
+#               (optional, for triggering --backend github-actions workflows)
+#
+#   tmux      — sudo apt install tmux
+#               (recommended for --background mode; nohup is the fallback)
+#
+# AOSP build dependencies (Ubuntu 22.04):
+#   sudo apt install git-core gnupg flex bison build-essential zip curl \
+#     zlib1g-dev libc6-dev-i386 lib32ncurses5-dev x11proto-core-dev \
+#     libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc \
+#     unzip fontconfig openjdk-17-jdk-headless rsync bc
+#
+# GitHub token (strongly recommended):
+#   Unauthenticated: 60 API req/hr  (hits limit fast with device tree search)
+#   Authenticated:  5,000 API req/hr (set once in TUI Settings or GITHUB_TOKEN env)
+#   Create a token at: https://github.com/settings/tokens
+#   No scopes needed — public repo read access only.

@@ -1,0 +1,34 @@
+# romforge.yaml
+#
+# This file is documentation + a starting point, not yet wired up for
+# live loading (config.py currently holds the authoritative tables).
+# If you want this to override config.py at runtime, the natural next
+# step is adding a small loader in config.py that merges these lists in --
+# kept separate for now so the 10-file budget stayed on the build pipeline
+# itself rather than a config-loading layer.
+#
+# Edit config.py directly for now; this file documents the shape your
+# additions should take if/when you wire up YAML loading.
+
+device_tree_orgs:
+  - LineageOS
+  - TheMuppets
+  - PixelExperience
+  - crdroidandroid
+  - AOSP-Krypton
+  # Add your own trusted orgs/users here, e.g.:
+  # - your-github-username
+
+gapps_overrides:
+  # Example of pinning a specific known-good mirror instead of relying on
+  # the homepage-only resolution in customizer.py:
+  # - min_api: 30
+  #   max_api: 35
+  #   family: "MindTheGapps"
+  #   url: "https://github.com/MindTheGapps/<your-pinned-release-asset>"
+
+notes: >
+  Device tree quality varies enormously. Always read a candidate repo's
+  README and recent commit history before trusting it for a build --
+  especially for vendor blob repos, which can contain large opaque binaries
+  you have no way to audit.

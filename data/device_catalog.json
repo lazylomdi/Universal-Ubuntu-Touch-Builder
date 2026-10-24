@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "policy": "Entries are evidence records, not automatic support claims. A device is supported only after exact-variant procedures and sources are reviewed.",
+  "devices": [
+    {
+      "manufacturer": "Sony",
+      "model": "Xperia R1",
+      "model_ids": [
+        "G2199"
+      ],
+      "codenames": [],
+      "status": "INVESTIGATING",
+      "ubuntu_touch_port": "UNKNOWN",
+      "bootloader_unlock": "UNKNOWN",
+      "kernel_source": null,
+      "device_tree": null,
+      "vendor_sources": [],
+      "installation_procedure": null,
+      "recovery_procedure": null,
+      "known_limitations": [
+        "No independently verified functional Ubuntu Touch port is recorded in this catalog."
+      ],
+      "evidence": [],
+      "last_reviewed": null,
+      "reviewer": null,
+      "architecture": null,
+      "required_android_base": null
+    },
+    {
+      "manufacturer": "Samsung",
+      "model": "Galaxy A04e",
+      "model_ids": [
+        "SM-A042F"
+      ],
+      "codenames": [
+        "a04e"
+      ],
+      "platform": "MediaTek MT6765 (device-reported; candidate)",
+      "status": "INVESTIGATING",
+      "ubuntu_touch_port": "UNKNOWN",
+      "bootloader_unlock": "UNKNOWN",
+      "kernel_source": null,
+      "device_tree": null,
+      "vendor_sources": [],
+      "installation_procedure": null,
+      "recovery_procedure": null,
+      "known_limitations": [
+        "ADB properties do not establish Ubuntu Touch compatibility.",
+        "No independently verified functional Ubuntu Touch port is recorded in this catalog."
+      ],
+      "evidence": [],
+      "last_reviewed": null,
+      "reviewer": null,
+      "architecture": null,
+      "required_android_base": null
+    }
+  ]
+}
