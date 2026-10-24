@@ -205,6 +205,19 @@ def main(argv: list[str] | None = None) -> int:
                 f"Read-only ADB property {prop_name}; device-reported, not independently verified.",
                 "Use as a compatibility clue; verify against device-specific sources."
             )))
+        setting_checks = {
+            "developer_options_enabled": "Developer options enabled",
+            "oem_unlock_toggle_enabled": "OEM unlocking toggle enabled",
+        }
+        for device_key, label in setting_checks.items():
+            value = detected.get(device_key)
+            normalized = {"1": True, "0": False, 1: True, 0: False}.get(value)
+            report["findings"].append(asdict(Finding(
+                device_key, normalized,
+                "UNKNOWN" if normalized is None else "CANDIDATE",
+                "Read-only Android Settings query; 1 means enabled and 0 means disabled. This does not establish bootloader unlock eligibility.",
+                "If unknown, check the phone Developer options screen. Verify bootloader unlock eligibility separately."
+            )))
         boot = detected.get("bootloader_assessment", {})
         report["findings"].append(asdict(Finding(
             "bootloader_current_state",
