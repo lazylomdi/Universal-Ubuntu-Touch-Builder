@@ -223,6 +223,14 @@ class DesktopWindow(QMainWindow):
             state = QLabel(device["state"])
             state.setObjectName("muted")
             state.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # Keep the icon, model name, and state visually grouped inside one tile.
+            tile.setContentsMargins(8, 8, 8, 8)
+            tile.setSpacing(2)
+            for child in (icon, name, state):
+                child.setStyleSheet("background: transparent; border: none; padding: 0;")
+            icon.setMinimumHeight(72)
+            name.setMinimumHeight(22)
+            state.setMinimumHeight(20)
             tile.addWidget(icon, 1)
             tile.addWidget(name)
             tile.addWidget(state)
@@ -1328,8 +1336,9 @@ class DesktopWindow(QMainWindow):
             QPushButton#primaryButton:hover { background: #7962bf; }
             QPushButton#deviceTile { background: #1b1b21; border: 1px solid #34343e; border-radius: 10px; padding: 14px; }
             QPushButton#deviceTile:hover { background: #29292f; border-color: #8068ce; }
-            #phoneIcon { font-size: 44px; padding: 8px; }
-            #deviceTileName { font-size: 13px; font-weight: 700; color: #f0f0f4; }
+            #phoneIcon { font-size: 44px; padding: 0; background: transparent; border: none; }
+            #deviceTileName { font-size: 13px; font-weight: 700; color: #f0f0f4; background: transparent; border: none; padding: 0; }
+            QPushButton#deviceTile QLabel { background: transparent; border: none; padding: 0; }
             #heroCard { background: #1b1b21; border: 1px solid #34343e; border-radius: 10px; }\n            #heroTitle { color: #f5f3ff; font-size: 26px; font-weight: 700; padding-top: 4px; padding-bottom: 4px; }\n            #statusPill { background: #142b27; color: #75cfc1; border: 1px solid #244a43; border-radius: 6px; padding: 9px; font-weight: 600; }
             QProgressBar { border: 0; background: #29292e; border-radius: 4px; height: 8px; text-align: center; }
             QProgressBar::chunk { background: #58b9a9; border-radius: 4px; }
