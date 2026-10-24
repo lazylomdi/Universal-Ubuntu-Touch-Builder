@@ -1212,7 +1212,7 @@ class DesktopWindow(QMainWindow):
         """Run read-only Fastboot inspection without requiring ADB or a selected list item."""
         answer = QMessageBox.question(
             self, "Read-only Fastboot inspection",
-            "Put the phone in bootloader/Fastboot mode and connect it by USB first.\\n\\n"
+            "Put the phone in bootloader/Fastboot mode and connect it by USB first.\n\n"
             "This checks Fastboot variables and bootloader-reported state only. "
             "It does not reboot, unlock, erase, or flash the phone.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
@@ -1229,8 +1229,8 @@ class DesktopWindow(QMainWindow):
             QMessageBox.critical(self, "Cannot prepare report", f"Could not prepare the Fastboot report:\\n{exc}")
             return
         self.device_output.setPlainText(
-            f"Inspecting Fastboot devices using read-only queries...\\n"
-            f"Saving report to: {self.device_report_path}\\n"
+            f"Inspecting Fastboot devices using read-only queries...\n"
+            f"Saving report to: {self.device_report_path}\n"
             "No unlock or flash command will be issued."
         )
         self.nav.setCurrentRow(4)
