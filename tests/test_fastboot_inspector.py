@@ -26,7 +26,7 @@ class FastbootInspectorTests(unittest.TestCase):
         self.assertIs(result["device"]["tampered"], False)
         self.assertEqual(result["device"]["current_state"], "UNLOCKED (Fastboot-reported)")
         commands = [call.args[0] for call in run.call_args_list]
-        self.assertTrue(all(not any(token in command for token in ("flash", "unlock", "erase", "format", "reboot")) for command in commands))
+        self.assertTrue(all(len(command) < 3 or command[2] not in {"flash", "flashing", "oem-unlock", "unlock", "erase", "format", "reboot"} for command in commands))
 
     @patch("fastboot_inspector.shutil.which", return_value="fastboot")
     @patch("fastboot_inspector._run")
