@@ -1,29 +1,55 @@
-# Research profile only. Values not backed by verified evidence remain null.
+# Research profile for Sony Xperia R1 (G2199).
+# Device facts below are reported by the user from read-only ADB queries.
+# A reported property does not establish Ubuntu Touch compatibility.
 manufacturer: Sony
 model: Xperia R1
+model_number:
+  value: G2199
+  status: OBSERVED
+  evidence: "ro.product.model=G2199; ro.product.device=G2199; ro.product.name=G2199"
+device_identifier:
+  value: G2199
+  status: OBSERVED
+  evidence: "ADB device output and Android system properties reported by user"
 ram_gb:
   value: 2
   status: CANDIDATE
-  evidence: User-reported target variant; not independently verified.
-codename:
-  value: null
-  status: UNKNOWN
-model_number:
-  value: null
-  status: UNKNOWN
+  evidence: User-reported target configuration; total usable RAM not yet independently measured.
+cpu_abi_list:
+  value:
+    - arm64-v8a
+    - armeabi-v7a
+    - armeabi
+  status: OBSERVED
+  evidence: "ro.product.cpu.abilist reported by user"
+android_version:
+  value: "8.0.0"
+  status: OBSERVED
+  evidence: "ro.build.version.release=8.0.0"
+android_sdk:
+  value: 26
+  status: OBSERVED
+  evidence: "ro.build.version.sdk=26"
+build_fingerprint:
+  value: "Sony/G2199/G2199:8.0.0/OPR1.170623.032/G2199_USR_S0014_180327_Q:user/release-keys"
+  status: OBSERVED
+  evidence: "ro.build.fingerprint reported by user"
+build_id:
+  value: "OPR1.170623.032"
+  status: OBSERVED
+  evidence: "ro.build.id reported by user"
+security_patch:
+  value: "2018-03-05"
+  status: OBSERVED
+  evidence: "ro.build.version.security_patch reported by user"
+kernel_version:
+  value: "3.18.71-perf-g83c241e"
+  status: OBSERVED
+  evidence: "uname -a reported by user; build string includes SMP PREEMPT and 2018-03-27 build date"
 chipset:
   value: null
   status: UNKNOWN
-cpu_architecture:
-  value: null
-  status: UNKNOWN
-android_version:
-  value: null
-  status: UNKNOWN
-kernel_version:
-  value: null
-  status: UNKNOWN
-bootloader_unlock_eligibility:
+codename:
   value: null
   status: UNKNOWN
 kernel_source:
@@ -38,7 +64,30 @@ vendor_blobs:
 ubuntu_touch_port:
   value: null
   status: UNKNOWN
-physical_device_available: false
+bootloader_unlock_eligibility:
+  value: null
+  status: UNKNOWN
+bootloader_observations:
+  flash_locked_property:
+    value: "false"
+    status: OBSERVED
+    evidence: "ro.boot.flash.locked=false reported by user; must not be treated as verified unlock procedure or eligibility"
+  oem_unlock_supported_property:
+    value: "false"
+    status: OBSERVED
+    evidence: "ro.oem_unlock_supported=false reported by user; not conclusive by itself"
+  slot_suffix:
+    value: "1"
+    status: OBSERVED
+    evidence: "ro.boot.slot_suffix=1 reported by user; alone does not prove an A/B partition scheme"
+  proc_cmdline:
+    value: null
+    status: UNAVAILABLE
+    evidence: "Reading /proc/cmdline returned Permission denied"
+physical_device_available: true
+research_status: INVESTIGATING
 notes:
-  - No device-specific facts are asserted without evidence.
-  - This profile does not establish buildability, bootability, or hardware support.
+  - This profile records user-reported ADB observations and keeps unverified properties explicitly unknown.
+  - No verified device-specific kernel source, device tree, vendor source set, or Ubuntu Touch port is recorded yet.
+  - This profile does not establish buildability, bootability, unlockability, or hardware support.
+  - Do not unlock, repartition, erase, or flash the device based on this profile.
