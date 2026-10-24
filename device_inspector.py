@@ -81,6 +81,9 @@ def inspect_device(serial: str | None = None, adb_path: str | None = None,
         props_result = _run([executable, "-s", serial, "shell", "getprop"], timeout=timeout)
         mem_result = _run([executable, "-s", serial, "shell", "cat", "/proc/meminfo"], timeout=timeout)
         kernel_result = _run([executable, "-s", serial, "shell", "uname", "-r"], timeout=timeout)
+        # Read Android Settings only; never write/change these settings.
+        dev_options_result = _run([executable, "-s", serial, "shell", "settings", "get", "global", "development_settings_enabled"], timeout=timeout)
+        oem_unlock_result = _run([executable, "-s", serial, "shell", "settings", "get", "global", "oem_unlock_enabled"], timeout=timeout)
     except subprocess.TimeoutExpired:
         return {"status": "ERROR", "message": "An ADB read-only query timed out.", "serial": serial, "device": {}, "devices": devices}
     except OSError as exc:
@@ -92,6 +95,13 @@ def inspect_device(serial: str | None = None, adb_path: str | None = None,
                 "serial": serial, "device": {}, "devices": devices}
 
     props = _parse_getprop(props_result.stdout)
+    def parse_setting(result: subprocess.CompletedProcess[str]) -> str | None:
+        if result.returncode != 0:
+            return None
+        value = result.stdout.strip().lower()
+        return value if value in {"0", "1"} else None
+    developer_options = parse_setting(dev_options_result)
+    oem_unlock_toggle = parse_setting(oem_unlock_result)
     mem_match = re.search(r"^MemTotal:\s+(\d+)\s+kB", mem_result.stdout, re.MULTILINE) if mem_result.returncode == 0 else None
     ram_gb = round(int(mem_match.group(1)) / 1024 / 1024, 2) if mem_match else None
     model = (props.get("ro.product.model") or props.get("ro.product.system.model")
@@ -135,6 +145,12 @@ def inspect_device(serial: str | None = None, adb_path: str | None = None,
         "ram_gb": ram_gb,
         "build_fingerprint": props.get("ro.build.fingerprint"),
         "cpu_abi": props.get("ro.product.cpu.abi"),
+        "developer_options_enabled": developer_options,
+        "oem_unlock_toggle_enabled": oem_unlock_toggle,
+        "developer_settings_evidence": {
+            "source": "read-only `adb shell settings get global` queries",
+            "note": "1 means enabled, 0 means disabled, and missing/unsupported values remain unknown. These settings do not prove bootloader unlock eligibility."
+        },
         "bootloader_unlock": None,
         "bootloader_assessment": {
             "current_state": (
